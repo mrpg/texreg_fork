@@ -49,7 +49,7 @@ jobs:
           tinytex::tlmgr_install("grfext")
         shell: Rscript {0}
 
-      - uses: r-lib/actions/setup-pandoc@v1
+      - uses: r-lib/actions/setup-pandoc@v2
 
       - name: Query dependencies
         run: |
@@ -59,8 +59,7 @@ jobs:
         shell: Rscript {0}
 
       - name: Cache R packages
-        if: runner.os != 'Windows'
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ${{ env.R_LIBS_USER }}
           key: ${{ runner.os }}-${{ hashFiles('.github/R-version') }}-1-${{ hashFiles('.github/depends.Rds') }}
@@ -77,18 +76,13 @@ jobs:
       - name: Install dependencies
         run: |
           remotes::install_cran("rcmdcheck")
-          devtools::install_deps(dependencies = TRUE)
-          install.packages("TMB", type = "source")
-          install.packages("glmmTMB", repos = "https://glmmTMB.github.io/glmmTMB/repos", type = "source")
-          devtools::install_github("paul-buerkner/brms", build_vignettes = FALSE)
-          devtools::install_github("lrberge/fixest")
-          install.packages(c("AER", "alpaca", "Bergm", "bife", "biglm", "btergm", "dynlm", "eha", "ergm", "feisr", "forecast", "gamlss.inf", "lfe", "lme4", "maxLik", "metaSEM", "miceadds", "mlogit", "ordinal", "plm", "spatialreg", "speedglm", "truncreg"))
+          devtools::install_deps(dependencies = c("Depends", "Imports", "LinkingTo", "Suggests", "Enhances"))
         shell: Rscript {0}
 
       - name: Check
         env:
           _R_CHECK_CRAN_INCOMING_REMOTE_: false
-        run: rcmdcheck::rcmdcheck(args = c("--no-manual", "--as-cran", "--ignore-vignettes"), error_on = "error", check_dir = "check", build_args = c("--no-manual", "--no-build-vignettes"))
+        run: rcmdcheck::rcmdcheck(args = c("--no-manual", "--as-cran", "--ignore-vignettes"), error_on = "error", check_dir = "check", build_args = c("--no-manual", "--no-build-vignettes", "--compact-vignettes=gs+qpdf"))
         shell: Rscript {0}
 
       - name: Upload check results

@@ -756,28 +756,6 @@ test_that("extract mlogit objects from the mlogit package", {
   expect_warning(extract(m, beside = TRUE), "choice-specific covariates")
 })
 
-# mnlogit (mnlogit) ----
-test_that("extract mnlogit models from the mnlogit package", {
-  testthat::skip_on_cran()
-  testthat::skip_if_not_installed("mnlogit", minimum_version = "1.2.6")
-  require("mnlogit")
-  set.seed(12345)
-  data(Fish, package = "mnlogit")
-  fit <- mnlogit(mode ~ price | income | catch, Fish, ncores = 1)
-  tr <- extract(fit)
-
-  expect_equivalent(sum(abs(tr@coef)), 13.33618, tolerance = 1e-2)
-  expect_equivalent(sum(tr@se), 3.059299, tolerance = 1e-2)
-  expect_equivalent(sum(tr@pvalues), 0.4701358, tolerance = 1e-2)
-  expect_equivalent(sum(tr@gof), 2407.143, tolerance = 1e-2)
-  expect_length(tr@coef, 11)
-  expect_length(tr@gof, 4)
-  expect_equivalent(which(tr@gof.decimal), 1:2)
-  expect_equivalent(tr@gof[4], 4)
-  expect_equal(dim(matrixreg(tr)), c(27, 2))
-  expect_warning(extract(fit, beside = TRUE), "choice-specific covariates")
-})
-
 # multinom (nnet) ----
 test_that("extract multinom objects from the nnet package", {
   testthat::skip_on_cran()
@@ -876,6 +854,97 @@ test_that("extract pcce objects from the plm package", {
   expect_equivalent(which(tr2@gof.decimal), 1:3)
 })
 
+# prais (prais) ----
+test_that("extract prais objects from the prais package", {
+  testthat::skip_on_cran()
+  skip_if_not_installed("prais", minimum_version = "1.1.3")
+  set.seed(12345)
+  data("barium", package = "prais")
+
+  output <- capture.output({
+    pwmod <- prais::prais_winsten(lchnimp ~ lchempi + lgas + lrtwex + befile6 + affile6 + afdec6, data = barium, index = "t")
+  }, file = NULL)
+
+  tr <- extract(pwmod)
+  expect_length(tr@coef.names, 8)
+  expect_length(tr@coef, 8)
+  expect_length(tr@se, 8)
+  expect_length(tr@pvalues, 8)
+  expect_length(tr@ci.low, 0)
+  expect_length(tr@ci.up, 0)
+  expect_length(tr@gof, 3)
+  expect_length(tr@gof.names, 3)
+  expect_length(tr@gof.decimal, 3)
+  expect_equivalent(which(tr@gof.decimal), 1:2)
+})
+
+# remstimate (remstimate) ----
+test_that("extract remstimate objects from the remstimate package", {
+  testthat::skip_on_cran()
+  skip_if_not_installed("remstimate", minimum_version = "2.3.11")
+  skip_if_not_installed("remify", minimum_version = "3.2.6")
+  skip_if_not_installed("remstats", minimum_version = "3.2.2")
+
+  data(tie_data, package = "remstimate")
+  tie_reh <- remify::remify(edgelist = tie_data$edgelist, model = "tie")
+  tie_model <- ~ 1 +
+    remstats::indegreeSender() +
+    remstats::inertia() +
+    remstats::reciprocity()
+  tie_reh_stats <- remstats::remstats(reh = tie_reh, tie_effects = tie_model)
+  rem1 <- remstimate::remstimate(reh = tie_reh,
+                                 stats = tie_reh_stats,
+                                 method = "MLE",
+                                 ncores = 1)
+  rem2 <- remstimate::remstimate(reh = tie_reh,
+                                 stats = tie_reh_stats,
+                                 method = "HMC",
+                                 ncores = 1,
+                                 L = 5L)
+  rem3 <- remstimate::remstimate(reh = tie_reh,
+                                 stats = tie_reh_stats,
+                                 method = "GDADAMAX",
+                                 ncores = 1)
+  rem4 <- remstimate::remstimate(reh = tie_reh,
+                                 stats = tie_reh_stats,
+                                 method = "BSIR",
+                                 ncores = 1)
+  mr1 <- matrixreg(list(rem1, rem2, rem3, rem4))
+  expect_true("matrix" %in% class(mr1))
+  expect_equal(nrow(mr1), 14)
+  expect_equal(ncol(mr1), 5)
+
+  actor_reh <- remify::remify(edgelist = tie_data$edgelist, model = "actor")
+  sender_model <- ~ 1 + remstats::outdegreeSender()
+  receiver_model <- ~ 1 + remstats::otp()
+  actor_reh_stats <- remstats::remstats(reh = actor_reh, sender_effects = sender_model, receiver_effects = receiver_model)
+  rem5 <- remstimate::remstimate(reh = actor_reh,
+                                 stats = actor_reh_stats,
+                                 method = "MLE",
+                                 ncores = 1)
+  rem6 <- remstimate::remstimate(reh = actor_reh,
+                                 stats = actor_reh_stats,
+                                 method = "HMC",
+                                 ncores = 1,
+                                 L = 5L)
+  rem7 <- remstimate::remstimate(reh = actor_reh,
+                                 stats = actor_reh_stats,
+                                 method = "GDADAMAX",
+                                 ncores = 1)
+  tr5 <- extract(rem5)
+  expect_length(tr5, 2)
+  expect_length(tr5[[1]]@coef.names, 2)
+  expect_length(tr5[[1]]@gof, 5)
+  expect_equal(tr5[[1]]@model.name, "sender_model")
+  expect_length(tr5[[2]]@coef.names, 1)
+  expect_length(tr5[[2]]@gof, 5)
+  expect_equal(tr5[[2]]@model.name, "receiver_model")
+  mr2 <- matrixreg(list(rem5, rem6, rem7))
+  expect_true("matrix" %in% class(mr2))
+  expect_equal(nrow(mr2), 12)
+  expect_equal(ncol(mr2), 7)
+})
+
 # Sarlm (spatialreg) ----
 test_that("extract Sarlm objects from the spatialreg package", {
   testthat::skip_on_cran()
@@ -889,15 +958,17 @@ test_that("extract Sarlm objects from the spatialreg package", {
   ev <- spatialreg::eigenw(listw)
   W <- as(listw, "CsparseMatrix")
   trMatc <- spatialreg::trW(W, type = "mult")
-  sink(nullfile())
-  COL.lag.eig <- spatialreg::lagsarlm(CRIME ~ INC + HOVAL,
-                                      data = COL.OLD,
-                                      listw = listw,
-                                      method = "eigen",
-                                      quiet = FALSE,
-                                      control = list(pre_eig = ev,
-                                                     OrdVsign = 1))
-  sink()
+
+  output <- capture.output({
+    COL.lag.eig <- spatialreg::lagsarlm(CRIME ~ INC + HOVAL,
+                                        data = COL.OLD,
+                                        listw = listw,
+                                        method = "eigen",
+                                        quiet = FALSE,
+                                        control = list(pre_eig = ev,
+                                                       OrdVsign = 1))
+  }, file = NULL)
+
   tr <- extract(COL.lag.eig)
   expect_length(tr@coef.names, 4)
   expect_length(tr@coef, 4)

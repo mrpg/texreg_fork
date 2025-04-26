@@ -7,6 +7,7 @@
 #' customizable. New model types can be easily implemented. Confidence
 #' intervals can be used instead of standard errors and p-values.
 #'
+#' @keywords package
 #' @author Philip Leifeld
 #' @seealso \code{\link{extract}} \code{\link{texreg}}
 #'
@@ -14,7 +15,6 @@
 #'   Output in R to LaTeX and HTML Tables. Journal of Statistical Software
 #'   55(8): 1-24. \doi{10.18637/jss.v055.i08}.
 #'
-#' @docType package
 #' @name texreg-package
 NULL
 
@@ -1718,7 +1718,7 @@ matrixreg <- function(l,
       }
     }
     if (length(se.missing) == nrow(output.matrix) / 2) {
-      output.matrix <- output.matrix[-se.missing, ]
+      output.matrix <- output.matrix[-se.missing, , drop = FALSE]
     }
   }
 
@@ -3812,7 +3812,7 @@ wordreg <- function(l,
   packageStartupMessage(
     "Version:  ", desc$Version, "\n",
     "Date:     ", desc$Date, "\n",
-    "Author:   ", "Philip Leifeld (University of Essex)", "\n\n",
+    "Author:   ", "Philip Leifeld (University of Manchester)", "\n\n",
     "Consider submitting praise using the praise or praise_interactive functions.\n",
     "Please cite the JSS article in your publications -- see citation(\"texreg\")."
   )
@@ -4528,8 +4528,7 @@ reorder <- function(mat, new.order) {
 #'   length zero.
 #' @param gof.decimal A \code{logical} vector with as many elements as the
 #'   \code{gof} argument, indicating whether the respective GOF statistic is a
-#'   double (\code{TRUE}) or integer (\code{FALSE}) number or whether it is a
-#'   \code{character} entry (\code{NA}).
+#'   double (\code{TRUE}) or integer (\code{FALSE}) number.
 #' @param model.name A name for the statistical model. Can be a \code{character}
 #'   vector of length zero if there is no model name.
 #' @return A \linkS4class{texreg} object representing the statistical model.
